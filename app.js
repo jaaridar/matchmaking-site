@@ -1,21 +1,17 @@
 // --- CONFIG ---
-const APP_ID = '31f38418-869a-4b4b-8d65-66b3df8ae919;
+const APP_ID = '31f38418-869a-4b4b-8d65-66b3df8ae919';
 const SERVER_IP = 'mc.yourserver.com:19132';
 
 // --- INITIALIZATION ---
 import { init } from 'https://cdn.jsdelivr.net/npm/@instantdb/core@0.17.4/+esm';
 
-// We wrap the init to expose it in a way that feels like "new db" if needed, 
-// though we use the standard functional init.
 const db = init({ appId: APP_ID });
 
 // --- STATE MANAGEMENT ---
 let state = {
     user: null,
     player: null,
-    view: 'auth', // 'auth', 'verify', 'dashboard'
-    authMode: 'register', // 'register', 'login'
-    email: '',
+    view: 'auth', // 'auth', 'dashboard'
     ign: ''
 };
 
@@ -24,82 +20,51 @@ const el = {
     authSection: document.getElementById('auth-section'),
     dashboardSection: document.getElementById('dashboard-section'),
     authForm: document.getElementById('auth-form'),
-    verifyForm: document.getElementById('verify-form'),
-    emailInput: document.getElementById('email'),
     ignInput: document.getElementById('ign'),
-    ignContainer: document.getElementById('ign-field'),
-    magicCodeInput: document.getElementById('magic-code'),
     statusMsg: document.getElementById('status-msg'),
     displayIgn: document.getElementById('display-ign'),
     queueStatus: document.getElementById('queue-status'),
     serverCmd: document.getElementById('server-command'),
     copyBtn: document.getElementById('copy-btn'),
     leaderboard: document.getElementById('leaderboard-list'),
-    logoutBtn: document.getElementById('logout-btn'),
-    toggleAuthMode: document.getElementById('toggle-auth-mode'),
-    backToAuth: document.getElementById('back-to-auth')
+    logoutBtn: document.getElementById('logout-btn')
 };
 
 // --- AUTH LOGIC ---
-
-async function handleSendCode(e) {
+async function handleGuestSignIn(e) {
     if (e) e.preventDefault();
-
-    state.email = el.emailInput.value.trim();
     state.ign = el.ignInput.value.trim();
-
-    if (!state.email) return showStatus('Please enter a valid email.', 'error');
-    if (state.authMode === 'register' && !state.ign) return showStatus('IGN is required for registration.', 'error');
-
-    showStatus('Sending magic code... Please wait.', 'success');
-
+    
+    if (!state.ign) return showStatus('Please enter your Minecraft IGN.', 'error');
+    
+    showStatus('Creating your account... Please wait.', 'success');
+    
     try {
-        console.log('[Auth] Sending magic code to:', state.email);
-        await db.auth.sendMagicCode({ email: state.email });
-
-        // Save IGN to local storage to persist across the code verification step
-        if (state.ign) localStorage.setItem('pending_ign', state.ign);
-
-        switchView('verify');
-        showStatus('Code sent! Check your inbox (and spam folder).', 'success');
+        console.log('[Auth] Signing in as guest with IGN:', state.ign);
+        await db.auth.signInAsGuest();
+        // Save IGN to local storage to persist
+        localStorage.setItem('pending_ign', state.ign);
+        showStatus('Account created! Setting up your profile...', 'success');
     } catch (err) {
         console.error('[Auth Error]', err);
-        showStatus('Error: ' + (err.message || 'Check your internet or email and try again.'), 'error');
-    }
-}
-
-async function handleVerifyCode(e) {
-    if (e) e.preventDefault();
-
-    const code = el.magicCodeInput.value.trim();
-    if (!code || code.length < 6) return showStatus('Please enter the 6-digit code.', 'error');
-
-    showStatus('Verifying code...', 'success');
-
-    try {
-        console.log('[Auth] Verifying code for:', state.email);
-        await db.auth.signInWithMagicCode({ email: state.email, code });
-        // Success handled by subscription
-    } catch (err) {
-        console.error('[Auth Error]', err);
-        showStatus('Invalid or expired code. Please try again.', 'error');
+        showStatus('Error: ' + (err.message || 'Please try again.'), 'error');
     }
 }
 
 function handleOnAuth(user) {
     state.user = user;
-    console.log('[Auth] User logged in:', user.id);
-
+    console.log('[Auth] User logged in:', user.id, 'isGuest:', user.isGuest);
+    
     // Check if we have a pending IGN
     const pendingIgn = state.ign || localStorage.getItem('pending_ign') || '';
-
+    
     // Subscribe to player data
     db.subscribeQuery({ players: { $: { where: { id: user.id } } } }, (resp) => {
         if (resp.error) {
             console.error('[DB Error]', resp.error);
             return;
         }
-
+        
         const players = resp.data?.players || [];
         if (players.length > 0) {
             state.player = players[0];
@@ -107,27 +72,24 @@ function handleOnAuth(user) {
             switchView('dashboard');
         } else if (pendingIgn) {
             // New user, create player record
-            registerPlayerData(user.id, user.email, pendingIgn);
+            registerPlayerData(user.id, pendingIgn);
         } else {
-            // Logged in but no profile and no pending IGN
-            // Force them back to register mode to provide IGN
-            state.authMode = 'register';
+            // No profile and no pending IGN - force back to auth
             switchView('auth');
             showStatus('Please provide your IGN to complete setup.', 'error');
         }
     });
-
+    
     // Cleanup pending data
     localStorage.removeItem('pending_ign');
 }
 
-async function registerPlayerData(id, email, ign) {
+async function registerPlayerData(id, ign) {
     console.log('[DB] Registering player profile:', ign);
     try {
         await db.transact(
             db.tx.players[id].update({
                 id,
-                email,
                 ign,
                 queued: true,
                 createdAt: Date.now()
@@ -140,22 +102,13 @@ async function registerPlayerData(id, email, ign) {
 }
 
 // --- UI LOGIC ---
-
 function switchView(view) {
     state.view = view;
     el.authSection.classList.add('hidden');
     el.dashboardSection.classList.add('hidden');
-    el.verifyForm.classList.add('hidden');
-    el.authForm.classList.add('hidden');
-
+    
     if (view === 'auth') {
         el.authSection.classList.remove('hidden');
-        el.authForm.classList.remove('hidden');
-        if (state.authMode === 'login') el.ignContainer.classList.add('hidden');
-        else el.ignContainer.classList.remove('hidden');
-    } else if (view === 'verify') {
-        el.authSection.classList.remove('hidden');
-        el.verifyForm.classList.remove('hidden');
     } else if (view === 'dashboard') {
         el.dashboardSection.classList.remove('hidden');
     }
@@ -165,7 +118,7 @@ function showStatus(msg, type) {
     el.statusMsg.textContent = msg;
     el.statusMsg.className = `status-msg ${type}`;
     el.statusMsg.style.display = 'block';
-
+    
     // Auto-hide success messages after 10s
     if (type === 'success') {
         setTimeout(() => {
@@ -176,8 +129,9 @@ function showStatus(msg, type) {
 
 function renderDashboard() {
     if (!state.player) return;
+    
     el.displayIgn.textContent = state.player.ign;
-
+    
     if (state.player.queued) {
         el.queueStatus.textContent = 'In Queue';
         el.queueStatus.className = 'status-badge queued';
@@ -185,12 +139,11 @@ function renderDashboard() {
         el.queueStatus.textContent = 'Idle';
         el.queueStatus.className = 'status-badge';
     }
-
+    
     el.serverCmd.textContent = `/connect ${SERVER_IP}`;
 }
 
 // --- SUBSCRIPTIONS ---
-
 // Auth state subscription
 db.subscribeQuery({ _core: { user: {} } }, (resp) => {
     const user = resp.data?._core?.user;
@@ -217,19 +170,7 @@ db.subscribeQuery({ players: { $: { limit: 5, order: { server: 'createdAt', dire
 });
 
 // --- EVENT LISTENERS ---
-
-el.authForm.addEventListener('submit', handleSendCode);
-el.verifyForm.addEventListener('submit', handleVerifyCode);
-
-el.toggleAuthMode.addEventListener('click', () => {
-    state.authMode = state.authMode === 'register' ? 'login' : 'register';
-    el.toggleAuthMode.textContent = state.authMode === 'register' ? 'Already have a code? Login' : 'Need to register? Sign Up';
-    switchView('auth');
-});
-
-el.backToAuth.addEventListener('click', () => {
-    switchView('auth');
-});
+el.authForm.addEventListener('submit', handleGuestSignIn);
 
 el.copyBtn.addEventListener('click', () => {
     navigator.clipboard.writeText(el.serverCmd.textContent).then(() => {
