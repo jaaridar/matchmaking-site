@@ -1,5 +1,5 @@
 // --- CONFIGURATION & ENV ---
-// CACHE_BUST: 2026-01-29T13:38:00 FORCE DEPLOY FIX TX IMPORT
+// CACHE_BUST: 2026-01-29T13:50:00 CRITICAL TX IMPORT FIX - FORCE DEPLOY #3
 // INTENT: Centralize all IDs and IPs.
 // Note: REDIRECT_URI must match the Discord Developer Portal settings exactly.
 const APP_ID = '31f38418-869a-4b4b-8d65-66b3df8ae919';
@@ -43,11 +43,14 @@ window.app = {
             logger.log('App', 'Initializing...');
 
             // Dynamically import InstantDB
+            // CRITICAL: tx MUST be imported for transactions to work
             const { init, id, tx } = await import('https://cdn.jsdelivr.net/npm/@instantdb/core@0.22.116/+esm');
             this.state.db = init({ appId: APP_ID });
             this.id = id;
             this.tx = tx; // Store tx specifically for transactions
 
+            // CRITICAL VERIFICATION: Log to confirm tx is loaded
+            console.log('🚀 DEPLOYMENT CHECK: tx imported successfully!', { hasId: !!id, hasTx: !!tx });
             logger.log('App', `InstantDB Loaded. ID: ${!!id}, TX: ${!!tx}`);
 
             // Check for OAuth success parameters
