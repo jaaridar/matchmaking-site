@@ -1,5 +1,5 @@
 // --- CONFIG ---
-const APP_ID = 'e9ac4449-93da-4eaf-96f0-78d0e4f548a9';
+const APP_ID = '31f38418-869a-4b4b-8d65-66b3df8ae919;
 const SERVER_IP = 'mc.yourserver.com:19132';
 
 // --- INITIALIZATION ---
