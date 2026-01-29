@@ -1,3 +1,11 @@
+import { sign } from 'jsonwebtoken';
+import { serialize } from 'cookie';
+import { v4 as uuidv4 } from 'uuid';
+
+const APP_ID = '31f38418-869a-4b4b-8d65-66b3df8ae919';
+const INSTANT_ADMIN_TOKEN = process.env.INSTANTDB_ADMIN_TOKEN;
+const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret-for-dev';
+
 export default async function handler(req, res) {
     // CORS
     res.setHeader('Access-Control-Allow-Credentials', true);
@@ -17,8 +25,6 @@ export default async function handler(req, res) {
     const CLIENT_ID = process.env.DISCORD_CLIENT_ID;
     const CLIENT_SECRET = process.env.DISCORD_CLIENT_SECRET;
 
-    // Determine redirect URI based on environment (local vs prod)
-    // TRAP: This MUST match the Redirect URI used in the authorize step and portal.
     const protocol = req.headers['x-forwarded-proto'] || 'http';
     const host = req.headers['host'];
     const REDIRECT_URI = `${protocol}://${host}/api/discord-auth`;
@@ -56,21 +62,91 @@ export default async function handler(req, res) {
 
         const userData = await userResponse.json();
 
-        // INTENT: Redirect back to frontend with user data
-        // Since the browser landed here, we must send it back to the UI.
         const avatarUrl = userData.avatar
             ? `https://cdn.discordapp.com/avatars/${userData.id}/${userData.avatar}.png`
             : '';
 
-        const params = new URLSearchParams({
-            discordId: userData.id,
-            username: userData.username,
-            avatar: avatarUrl,
-            email: userData.email
+        // --- INSTANTDB UPSERT ---
+        // 1. Check if user exists
+        const query = {
+            users: {
+                $: {
+                    where: { discordId: userData.id }
+                }
+            }
+        };
+
+        const queryRes = await fetch(`https://api.instantdb.com/admin/apps/${APP_ID}/query`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${INSTANT_ADMIN_TOKEN}`
+            },
+            body: JSON.stringify(query)
         });
 
-        // Redirect to Home with data
-        return res.redirect(302, `${protocol}://${host}/?${params.toString()}`);
+        const queryData = await queryRes.json();
+        let user = queryData.users?.[0];
+        let userId;
+
+        if (user) {
+            userId = user.id;
+            // Update lastLoginAt
+            await fetch(`https://api.instantdb.com/admin/apps/${APP_ID}/transact`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${INSTANT_ADMIN_TOKEN}`
+                },
+                body: JSON.stringify({
+                    ops: [
+                        ["update", "users", userId, {
+                            lastLoginAt: Date.now(),
+                            discordUsername: userData.username,
+                            discordAvatarUrl: avatarUrl
+                        }]
+                    ]
+                })
+            });
+        } else {
+            userId = uuidv4();
+            // Create new user
+            await fetch(`https://api.instantdb.com/admin/apps/${APP_ID}/transact`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${INSTANT_ADMIN_TOKEN}`
+                },
+                body: JSON.stringify({
+                    ops: [
+                        ["set", "users", userId, {
+                            id: userId,
+                            discordId: userData.id,
+                            discordUsername: userData.username,
+                            discordAvatarUrl: avatarUrl,
+                            email: userData.email || '',
+                            status: userData.email ? 'needsIGN' : 'needsEmail',
+                            createdAt: Date.now(),
+                            lastLoginAt: Date.now()
+                        }]
+                    ]
+                })
+            });
+        }
+
+        // --- SESSION COOKIE ---
+        const token = sign({ userId: userId }, JWT_SECRET, { expiresIn: '7d' });
+
+        res.setHeader('Set-Cookie', serialize('session', token, {
+            httpOnly: true,
+            secure: true, // Always secure for cross-site auth redirects
+            sameSite: 'lax',
+            path: '/',
+            maxAge: 60 * 60 * 24 * 7 // 1 week
+        }));
+
+        // Redirect to Home
+        return res.redirect(302, `${protocol}://${host}/`);
 
     } catch (error) {
         console.error('Auth Error:', error);

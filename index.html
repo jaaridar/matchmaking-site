@@ -179,16 +179,55 @@
 
     </main>
 
-    <!-- NEW USER REGISTRATION MODAL -->
+    <!-- EMAIL VERIFICATION MODAL -->
+    <div id="email-modal" class="hidden"
+        style="position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 2100; display: flex; align-items: center; justify-content: center;">
+        <div class="feature-card" style="width: 100%; max-width: 450px; animation: fadeIn 0.3s ease-out;">
+            <h2 style="margin-bottom: 1rem; text-align: center; color: var(--primary);">VERIFY EMAIL</h2>
+            <div id="email-step-1">
+                <p style="font-size: 0.9rem; color: #888; text-align: center; margin-bottom: 2rem;">Please verify your
+                    email to continue to Early Access.</p>
+                <form id="email-send-form">
+                    <div style="margin-bottom: 1.5rem;">
+                        <label
+                            style="display: block; font-size: 0.8rem; color: var(--primary); margin-bottom: 0.5rem; font-family: var(--font-pixel);">EMAIL
+                            ADDRESS</label>
+                        <input type="email" id="email-input"
+                            style="width: 100%; background: #111; border: 1px solid #333; padding: 12px; color: #fff; font-family: var(--font-body); font-size: 1.1rem;"
+                            placeholder="user@example.com" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-large" style="width: 100%;">SEND CODE</button>
+                </form>
+            </div>
+            <div id="email-step-2" class="hidden">
+                <p style="font-size: 0.9rem; color: #888; text-align: center; margin-bottom: 2rem;">We sent a 6-digit
+                    code to <span id="display-email" style="color: white; font-weight: bold;"></span>.</p>
+                <form id="email-verify-form">
+                    <div style="margin-bottom: 1.5rem;">
+                        <label
+                            style="display: block; font-size: 0.8rem; color: var(--primary); margin-bottom: 0.5rem; font-family: var(--font-pixel);">VERIFICATION
+                            CODE</label>
+                        <input type="text" id="code-input"
+                            style="width: 100%; background: #111; border: 1px solid #333; padding: 12px; color: #fff; font-family: var(--font-pixel); font-size: 1.5rem; text-align: center; letter-spacing: 0.5rem;"
+                            placeholder="000000" maxlength="6" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-large" style="width: 100%;">VERIFY &
+                        CONTINUE</button>
+                    <button type="button" id="resend-btn"
+                        style="background: none; border: none; color: #555; font-size: 0.8rem; margin-top: 1rem; cursor: pointer; width: 100%;">Didn't
+                        get a code? Try again.</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- NEW USER REGISTRATION MODAL (IGN) -->
     <div id="register-modal" class="hidden"
         style="position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 2000; display: flex; align-items: center; justify-content: center;">
         <div class="feature-card" style="width: 100%; max-width: 450px; animation: fadeIn 0.3s ease-out;">
-            <h2 style="margin-bottom: 1rem; text-align: center; color: var(--primary);">WELCOME!</h2>
+            <h2 style="margin-bottom: 1rem; text-align: center; color: var(--primary);">ONE LAST STEP</h2>
             <div style="text-align: center; margin-bottom: 2rem;">
-                <img id="reg-avatar" src=""
-                    style="width: 60px; height: 60px; border-radius: 50%; border: 2px solid var(--primary); display: none;">
-                <p id="reg-username" style="color: white; font-weight: bold; margin-top: 0.5rem;"></p>
-                <p style="font-size: 0.9rem; color: #888;">One last step: What is your Minecraft IGN?</p>
+                <p style="font-size: 0.9rem; color: #888;">Almost there! What is your Minecraft IGN?</p>
             </div>
 
             <form id="register-form">

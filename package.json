@@ -1,0 +1,11 @@
+{
+    "name": "matchmaking-site",
+    "version": "1.0.0",
+    "description": "MCBE Ranked Matchmaking Site",
+    "main": "app.js",
+    "dependencies": {
+        "cookie": "^0.6.0",
+        "jsonwebtoken": "^9.0.2",
+        "node-mailjet": "^6.0.11"
+    }
+}
