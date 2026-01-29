@@ -1,264 +1,263 @@
 // --- CONFIG ---
 const APP_ID = '31f38418-869a-4b4b-8d65-66b3df8ae919';
-const SERVER_IP = 'mc.yourserver.com:19132';
+const SERVER_IP = 'mc.ranked-server.com:19132';
 
+// --- INITIALIZATION ---
 import { init } from 'https://cdn.jsdelivr.net/npm/@instantdb/core@0.22.116/+esm';
-
 const db = init({ appId: APP_ID });
 
-// --- STATE ---
-let state = {
-    user: null,
-    player: null,
-    currentTier: 'IRON' // IRON, GOLD, DIAMOND, NETHERITE
+// --- GOBLAL APP INSTANCE ---
+window.app = {
+    state: {
+        user: null,
+        player: null,
+        route: 'home', // 'home', 'dashboard', 'leaderboard', 'profile'
+        queueing: false,
+        timerInterval: null
+    },
+
+    // --- NAVIGATION ---
+    navigate(route) {
+        if (route === this.state.route) return;
+
+        // Auth Guard
+        if (!this.state.user && (route === 'dashboard' || route === 'profile')) {
+            this.showAuth();
+            return;
+        }
+
+        console.log('[Router] Navigating to:', route);
+        this.state.route = route;
+
+        // Update UI Visibility
+        document.querySelectorAll('.view-section').forEach(sec => sec.classList.remove('active'));
+        const activeSec = document.getElementById(`view-${route}`);
+        if (activeSec) activeSec.classList.add('active');
+
+        // Update Nav Active State
+        document.querySelectorAll('.nav-item').forEach(item => {
+            item.classList.toggle('active', item.dataset.route === route);
+        });
+
+        // Specific View Renderers
+        if (route === 'leaderboard') this.renderLeaderboard();
+        if (route === 'profile') this.renderProfile();
+        if (route === 'dashboard') this.renderDashboard();
+    },
+
+    showAuth() {
+        document.getElementById('auth-overlay').classList.add('active');
+    },
+
+    hideAuth() {
+        document.getElementById('auth-overlay').classList.remove('active');
+    },
+
+    // --- AUTH ACTIONS ---
+    async handleAuth(e) {
+        e.preventDefault();
+        const ign = document.getElementById('ign-input').value.trim();
+        if (!ign) return;
+
+        this.setAuthStatus('Connecting to network...', 'success');
+
+        try {
+            let user;
+            if (db.auth && typeof db.auth.signInAsGuest === 'function') {
+                const res = await db.auth.signInAsGuest();
+                user = res.user;
+            } else {
+                // Local fallback for dev environment
+                user = { id: `manual-${Date.now()}` };
+            }
+
+            if (user) {
+                console.log('[Auth] Logged in as:', user.id);
+                // 1. Save Initial Profile
+                await db.transact(db.tx.players[user.id].update({ id: user.id, ign, lastSeen: Date.now() }));
+
+                // 2. Hide Auth & Navigate
+                this.hideAuth();
+                this.navigate('dashboard');
+            }
+        } catch (err) {
+            console.error('[Auth Error]', err);
+            this.setAuthStatus('Login failed: ' + (err.message || 'Error'), 'error');
+        }
+    },
+
+    setAuthStatus(msg, type) {
+        const el = document.getElementById('auth-status');
+        el.textContent = msg;
+        el.className = `status-msg ${type}`;
+        el.style.display = 'block';
+    },
+
+    // --- TIERS & PROGRESSION ---
+    getTier(matches) {
+        if (matches >= 200) return { id: 'NETHERITE', label: 'Netherite Rank', class: 'badge-netherite', icon: '🛡️' };
+        if (matches >= 50) return { id: 'DIAMOND', label: 'Diamond Rank', class: 'badge-diamond', icon: '💎' };
+        if (matches >= 20) return { id: 'GOLD', label: 'Gold Rank', class: 'badge-gold', icon: '🟡' };
+        return { id: 'IRON', label: 'Iron Rank', class: 'badge-iron', icon: '⚪' };
+    },
+
+    updateUserUI(player) {
+        const tier = this.getTier(player.matchesPlayed || 0);
+
+        // Sidebar Update
+        document.getElementById('sidebar-user').classList.remove('hidden');
+        document.getElementById('login-trigger-btn').classList.add('hidden');
+        document.getElementById('sidebar-ign').textContent = player.ign;
+        document.getElementById('sidebar-tier').textContent = tier.label;
+
+        // Dashboard/Profile specific global elements
+        const badgeEls = [document.getElementById('dash-badge-large'), document.getElementById('prof-tier')];
+        badgeEls.forEach(el => {
+            if (!el) return;
+            el.className = `badge ${tier.class}`;
+            if (el.classList.contains('tier-badge-large')) el.classList.add('tier-badge-large');
+            el.textContent = tier.label;
+        });
+    },
+
+    // --- VIEW RENDERERS ---
+    renderDashboard() {
+        if (!this.state.player) return;
+        const p = this.state.player;
+        const tier = this.getTier(p.matchesPlayed || 0);
+
+        document.getElementById('dash-ign').textContent = p.ign;
+        document.getElementById('dash-elo').textContent = (p.elo || 1000).toLocaleString();
+        document.getElementById('dash-wins').textContent = p.wins || 0;
+        document.getElementById('dash-losses').textContent = p.losses || 0;
+
+        // Progress Bar
+        let target = 20;
+        let nextLabel = "Gold Rank";
+        if (tier.id === 'GOLD') { target = 50; nextLabel = "Diamond Rank"; }
+        if (tier.id === 'DIAMOND') { target = 200; nextLabel = "Netherite Rank"; }
+        if (tier.id === 'NETHERITE') { target = 500; nextLabel = "Grandmaster Status"; }
+
+        const perc = Math.min(100, ((p.matchesPlayed || 0) / target) * 100);
+        document.getElementById('dash-progress-bar').style.width = `${perc}%`;
+        document.getElementById('dash-progress-title').textContent = `ROAD TO ${nextLabel}`;
+        document.getElementById('dash-progress-count').textContent = `${p.matchesPlayed || 0} / ${target} Matches`;
+
+        const mot = document.getElementById('dash-motivational');
+        if (tier.id === 'IRON') mot.textContent = "Play 20 matches to unlock Gold features!";
+        else if (tier.id === 'GOLD') mot.textContent = "Almost there! Unlock the global leaderboard at 50 matches.";
+        else mot.textContent = "Compete with top veterans and climb the leaderboard.";
+    },
+
+    renderLeaderboard() {
+        const matches = this.state.player?.matchesPlayed || 0;
+        const locked = matches < 50;
+
+        document.getElementById('lb-locked-overlay').classList.toggle('hidden', !locked);
+        document.getElementById('lb-table').classList.toggle('hidden', locked);
+
+        if (!locked) {
+            // Subscription for actual LB would be here. For now, mock or direct query.
+            db.subscribeQuery({ players: { $: { limit: 10, order: { server: 'elo', direction: 'desc' } } } }, (resp) => {
+                if (!resp.data) return;
+                const tbody = document.getElementById('lb-tbody');
+                tbody.innerHTML = resp.data.players.map((p, i) => `
+                    <tr>
+                        <td><span class="rank-pill">#${i + 1}</span></td>
+                        <td style="font-weight:700;">${p.ign}</td>
+                        <td>${this.getTier(p.matchesPlayed || 0).label}</td>
+                        <td><span style="color:var(--primary); font-weight:800;">${p.elo || 1000}</span></td>
+                        <td>${p.wins || 0}</td>
+                    </tr>
+                `).join('');
+            });
+        }
+    },
+
+    renderProfile() {
+        if (!this.state.player) return;
+        const p = this.state.player;
+        const winrate = p.matchesPlayed ? Math.round(((p.wins || 0) / p.matchesPlayed) * 100) : 0;
+
+        document.getElementById('prof-ign').textContent = p.ign;
+        document.getElementById('prof-matches').textContent = p.matchesPlayed || 0;
+        document.getElementById('prof-winrate').textContent = `${winrate}%`;
+    }
 };
 
-// --- DOM ELEMENTS ---
-const el = {
-    authSection: document.getElementById('auth-section'),
-    dashboardSection: document.getElementById('dashboard-section'),
-    authForm: document.getElementById('auth-form'),
-    ignInput: document.getElementById('ign'),
-    statusMsg: document.getElementById('status-msg'),
+// --- INITIAL SESSION CHECK ---
+db.subscribeQuery({ _core: { user: {} } }, (resp) => {
+    const user = resp.data?._core?.user;
+    if (user && !app.state.user) {
+        console.log('[App] Session Detected:', user.id);
+        app.state.user = user;
 
-    // Dashboard Components
-    displayIgn: document.getElementById('display-ign'),
-    tierBadge: document.getElementById('tier-badge'),
-    progressBar: document.getElementById('tier-progress-bar'),
-    progressCount: document.getElementById('progress-count'),
-    nextRankTitle: document.getElementById('next-rank-title'),
-    motivationalMsg: document.getElementById('motivational-msg'),
-
-    // Stats
-    statsGrid: document.getElementById('stats-grid'),
-    eloDisplay: document.getElementById('elo-display'),
-    recordDisplay: document.getElementById('record-display'),
-
-    // Features
-    leaderboardContainer: document.getElementById('leaderboard-container'),
-    leaderboardLock: document.getElementById('leaderboard-lock'),
-    leaderboardList: document.getElementById('leaderboard-list'),
-
-    // Actions
-    logoutBtn: document.getElementById('logout-btn'),
-    serverCmd: document.getElementById('server-cmd'),
-    copyBtn: document.getElementById('copy-btn')
-};
-
-// --- AUTH LOGIC ---
-async function handleLogin(e) {
-    e.preventDefault();
-    const ign = el.ignInput.value.trim();
-    if (!ign) return;
-
-    el.statusMsg.textContent = "Creating your profile...";
-    el.statusMsg.style.display = 'block';
-
-    try {
-        let user;
-        // Robust Auth Fallback
-        if (db.auth && typeof db.auth.signInAsGuest === 'function') {
-            const res = await db.auth.signInAsGuest();
-            user = res.user;
-        } else {
-            console.warn('Auth fallback used');
-            user = { id: `guest-${Date.now()}` }; // Local dev fallback
-        }
-
-        if (user) {
-            // Immediate transition
-            state.user = user;
-
-            // Init or Fetch Profile
-            await initPlayerProfile(user.id, ign);
-
-            // Enter Dashboard
-            enterDashboard(ign);
-        }
-    } catch (err) {
-        console.error(err);
-        el.statusMsg.textContent = "Connection failed. Please try again.";
-        el.statusMsg.className = "status-msg error";
+        // Subscribe to Player Data
+        db.subscribeQuery({ players: { $: { where: { id: user.id } } } }, (pResp) => {
+            const player = pResp.data?.players[0];
+            if (player) {
+                app.state.player = player;
+                app.updateUserUI(player);
+                // If on Home or Auth, push to Dashboard
+                if (app.state.route === 'home') app.navigate('dashboard');
+                else app.navigate(app.state.route); // Refresh current view
+            }
+        });
+    } else if (!user && app.state.user) {
+        // Handle Logout
+        window.location.reload();
     }
-}
+});
 
-async function initPlayerProfile(id, ign) {
-    await db.transact(
-        db.tx.players[id].update({
-            id,
-            ign,
-            lastSeen: Date.now()
-        })
-    );
-}
+// --- EVENT LISTENERS ---
+document.getElementById('auth-form').addEventListener('submit', (e) => app.handleAuth(e));
+document.getElementById('login-trigger-btn').addEventListener('click', () => app.showAuth());
 
-// --- PROGRESSION LOGIC ---
-function calculateTier(matches) {
-    // 0-19: IRON
-    // 20-49: GOLD 
-    // 50-199: DIAMOND
-    // 200+: NETHERITE
-
-    // Assuming the user meant:
-    // First progression 0-20 (Reach 20 to unlock next)
-    // Second 50
-    // Third 200
-
-    if (matches >= 200) return 'NETHERITE';
-    if (matches >= 50) return 'DIAMOND';
-    if (matches >= 20) return 'GOLD';
-    return 'IRON';
-}
-
-function updateGamification(player) {
-    const matches = player.matchesPlayed || 0;
-    const tier = calculateTier(matches);
-    state.currentTier = tier;
-
-    // 1. Update Badge
-    updateBadge(tier);
-
-    // 2. Update Progress Bar
-    updateProgress(matches, tier);
-
-    // 3. Unlock Features
-
-    // IRON (0-19): Basic View
-    if (tier === 'IRON') {
-        el.statsGrid.classList.add('hidden');
-        el.leaderboardContainer.classList.add('locked-feature');
-        el.leaderboardLock.style.display = 'flex';
-        el.leaderboardLock.querySelector('.lock-text').textContent = 'Reach DIAMOND Tier to Unlock';
-        el.leaderboardLock.querySelector('div:last-child').textContent = '(50+ Matches)';
-    }
-    // GOLD (20-49): Stats Unlock
-    else if (tier === 'GOLD') {
-        el.statsGrid.classList.remove('hidden');
-        el.leaderboardContainer.classList.add('locked-feature');
-        el.leaderboardLock.style.display = 'flex';
-
-        // Populate stats
-        renderStats(player);
-    }
-    // DIAMOND (50-199): Leaderboard Unlock
-    else if (tier === 'DIAMOND') {
-        el.statsGrid.classList.remove('hidden');
-        el.leaderboardContainer.classList.remove('locked-feature');
-        el.leaderboardLock.style.display = 'none';
-
-        // Populate stats & leaderboard
-        renderStats(player);
-        renderMockLeaderboard();
-    }
-    // NETHERITE (200+): Elite Status
-    else {
-        el.statsGrid.classList.remove('hidden');
-        el.leaderboardContainer.classList.remove('locked-feature');
-        el.leaderboardLock.style.display = 'none';
-
-        renderStats(player);
-        renderMockLeaderboard();
-    }
-}
-
-function renderStats(player) {
-    el.eloDisplay.textContent = player.elo || 1000;
-    const wins = player.wins || 0;
-    const losses = player.losses || 0;
-    el.recordDisplay.textContent = `${wins} Wins - ${losses} Losses`;
-}
-
-function updateBadge(tier) {
-    el.tierBadge.className = 'badge'; // reset
-    if (tier === 'IRON') {
-        el.tierBadge.classList.add('badge-iron');
-        el.tierBadge.innerHTML = '⚪ Iron';
-    } else if (tier === 'GOLD') {
-        el.tierBadge.classList.add('badge-gold');
-        el.tierBadge.innerHTML = '🟡 Gold';
-    } else if (tier === 'DIAMOND') {
-        el.tierBadge.classList.add('badge-diamond');
-        el.tierBadge.innerHTML = '💎 Diamond';
-    } else if (tier === 'NETHERITE') {
-        el.tierBadge.classList.add('badge-netherite');
-        el.tierBadge.innerHTML = '🛡️ Netherite';
-    }
-}
-
-function updateProgress(matches, tier) {
-    let target = 20;
-    let current = matches;
-    let label = "Road to Gold";
-    let msg = "Play 20 matches to unlock your stats.";
-
-    if (tier === 'GOLD') {
-        target = 50;
-        label = "Road to Diamond";
-        msg = "Reach 50 matches to unlock Global Leaderboard.";
-    } else if (tier === 'DIAMOND') {
-        target = 200;
-        label = "Road to Netherite";
-        msg = "Prove your endurance. Become a Legend.";
-    } else if (tier === 'NETHERITE') {
-        target = 1000;
-        label = "Living Legend";
-        msg = "You are among the elite.";
-    }
-
-    const percentage = Math.min(100, (current / target) * 100);
-    el.progressBar.style.width = `${percentage}%`;
-    el.progressCount.textContent = `${current} / ${target} Matches`;
-    el.nextRankTitle.textContent = label;
-    el.motivationalMsg.textContent = msg;
-}
-
-// --- UI TRIGGERS ---
-function enterDashboard(ign) {
-    el.authSection.classList.add('hidden');
-    el.dashboardSection.classList.remove('hidden');
-    el.displayIgn.textContent = ign;
-    el.serverCmd.textContent = `/connect ${SERVER_IP}`;
-
-    // Subscribe to live data logic
-    startSubscription(state.user.id);
-}
-
-function startSubscription(userId) {
-    // Subscribe to SELF
-    db.subscribeQuery({ players: { $: { where: { id: userId } } } }, (resp) => {
-        if (!resp.data) return;
-        const p = resp.data.players[0];
-        if (p) {
-            updateGamification(p);
-        } else {
-            // New player default state logic
-            updateGamification({ matchesPlayed: 0 });
-        }
+document.querySelectorAll('.nav-item').forEach(item => {
+    item.addEventListener('click', (e) => {
+        app.navigate(item.dataset.route);
     });
-}
-
-function renderMockLeaderboard() {
-    const mocks = [
-        { name: "SpeedDemon", elo: 2100 },
-        { name: "BlockMaster", elo: 1950 },
-        { name: "NetherKing", elo: 1840 }
-    ];
-
-    el.leaderboardList.innerHTML = mocks.map((p, i) => `
-        <li class="leaderboard-item">
-            <span><span class="rank-num">#${i + 1}</span> ${p.name}</span>
-            <span style="color: var(--primary); font-weight:700;">${p.elo}</span>
-        </li>
-    `).join('');
-}
-
-// --- EVENTS ---
-el.authForm.addEventListener('submit', handleLogin);
-el.copyBtn.addEventListener('click', () => {
-    navigator.clipboard.writeText(el.serverCmd.innerText);
-    el.copyBtn.textContent = "Copied!";
-    setTimeout(() => el.copyBtn.innerText = "Copy", 2000);
 });
-el.logoutBtn.addEventListener('click', () => {
-    location.reload();
+
+document.getElementById('dash-copy-btn').addEventListener('click', () => {
+    navigator.clipboard.writeText(SERVER_IP).then(() => {
+        const btn = document.getElementById('dash-copy-btn');
+        const oldText = btn.textContent;
+        btn.textContent = 'Copied!';
+        setTimeout(() => btn.textContent = oldText, 2000);
+    });
 });
+
+document.getElementById('prof-logout-btn').addEventListener('click', () => {
+    if (db.auth) db.auth.signOut();
+});
+
+document.getElementById('join-queue-btn').addEventListener('click', () => {
+    const btn = document.getElementById('join-queue-btn');
+    const status = document.getElementById('queue-status-text');
+
+    app.state.queueing = !app.state.queueing;
+
+    if (app.state.queueing) {
+        btn.textContent = "LEAVE QUEUE";
+        btn.classList.add('btn-ghost');
+        btn.classList.remove('btn-primary');
+        status.classList.remove('hidden');
+
+        let sec = 0;
+        app.timerInterval = setInterval(() => {
+            sec++;
+            const m = Math.floor(sec / 60).toString().padStart(2, '0');
+            const s = (sec % 60).toString().padStart(2, '0');
+            document.getElementById('queue-timer').textContent = `${m}:${s}`;
+        }, 1000);
+    } else {
+        btn.textContent = "JOIN MATCHMAKING";
+        btn.classList.remove('btn-ghost');
+        btn.classList.add('btn-primary');
+        status.classList.add('hidden');
+        clearInterval(app.timerInterval);
+    }
+});
+
+console.log('[App] Portal Initialized.');
