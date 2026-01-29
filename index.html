@@ -4,13 +4,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MCBE Ranked Portal | Professional Matchmaking</title>
+    <title>MCBE RANKED</title>
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
-        href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=JetBrains+Mono:wght@400;700&display=swap"
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=JetBrains+Mono:wght@400;700&family=Silkscreen&display=swap"
         rel="stylesheet">
 
     <link rel="stylesheet" href="style.css">
@@ -18,252 +18,170 @@
 
 <body>
 
-    <div class="app-wrapper">
+    <!-- TOP NAVIGATION -->
+    <header class="top-nav">
+        <div class="nav-container">
+            <a href="#" class="nav-brand" onclick="app.navigate('home')">
+                <span>⚔️</span> MCBE RANKED
+            </a>
 
-        <!-- SIDEBAR NAVIGATION -->
-        <aside class="sidebar" id="main-sidebar">
-            <div class="logo-area">
-                <div class="logo-icon">⚔️</div>
-                <div class="logo-text">MCBE RANKED</div>
-            </div>
-
-            <nav class="main-nav">
-                <a class="nav-item active" data-route="home">
-                    <span class="nav-icon">🏠</span> Home
-                </a>
-                <a class="nav-item" data-route="dashboard" id="nav-dashboard">
-                    <span class="nav-icon">📊</span> Dashboard
-                </a>
-                <a class="nav-item" data-route="leaderboard" id="nav-leaderboard">
-                    <span class="nav-icon">🏆</span> Leaderboard
-                </a>
-                <a class="nav-item" data-route="profile" id="nav-profile">
-                    <span class="nav-icon">👤</span> Profile
-                </a>
+            <nav class="nav-links">
+                <a class="nav-link active" data-route="home" onclick="app.navigate('home')">HOME</a>
+                <a class="nav-link" data-route="dashboard" onclick="app.navigate('dashboard')">DASHBOARD</a>
+                <a class="nav-link" data-route="leaderboard" onclick="app.navigate('leaderboard')">LEADERBOARD</a>
             </nav>
 
-            <div class="sidebar-footer">
-                <div id="sidebar-user" class="user-snippet hidden">
-                    <div class="avatar-small"></div>
-                    <div style="flex-grow:1">
-                        <div id="sidebar-ign" style="font-weight:700; font-size: 0.9rem;">Steve</div>
-                        <div id="sidebar-tier" style="font-size: 0.7rem; color: var(--text-muted);">Iron Tier</div>
-                    </div>
+            <div class="user-nav">
+                <div id="nav-user-info" class="hidden"
+                    style="font-family: var(--font-pixel); font-size: 0.8rem; color: var(--primary);">
+                    <span id="nav-ign">STEVE</span>
                 </div>
-                <button id="login-trigger-btn" class="btn btn-primary" style="width:100%">Join Now</button>
-            </div>
-        </aside>
-
-        <!-- MAIN CONTENT AREA -->
-        <main class="content">
-
-            <!-- VIEW: HOME (Landing Page) -->
-            <section id="view-home" class="view-section active home-view">
-                <span class="hero-badge">THE ELITE SPEEDRUNNING NETWORK</span>
-                <h1 class="hero-title">Elevate Your <br> <span style="color: var(--primary)">Minecraft</span> Career.
-                </h1>
-                <p class="hero-subtitle">The first professional, tier-based matchmaking platform for Bedrock Edition
-                    speedrunning. Compete, rank up, and become a legend.</p>
-
-                <div class="hero-actions">
-                    <button class="btn btn-primary btn-large" onclick="app.showAuth()">Create Account</button>
-                    <button class="btn btn-ghost" onclick="app.navigate('leaderboard')">View Rankings</button>
-                </div>
-
-                <div class="grid-container" style="margin-top: 5rem;">
-                    <div class="glass-card">
-                        <div class="nav-icon" style="font-size: 2rem; margin-bottom: 1rem;">⚡</div>
-                        <h3>Instant Matchmaking</h3>
-                        <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 0.5rem;">Queue up and find
-                            high-quality matches within seconds using our advanced ELO algorithm.</p>
-                    </div>
-                    <div class="glass-card">
-                        <div class="nav-icon" style="font-size: 2rem; margin-bottom: 1rem;">📈</div>
-                        <h3>Progression Tiers</h3>
-                        <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 0.5rem;">Climb from Iron to
-                            Netherite. Each rank unlocks new features and prestige badges.</p>
-                    </div>
-                    <div class="glass-card">
-                        <div class="nav-icon" style="font-size: 2rem; margin-bottom: 1rem;">💎</div>
-                        <h3>Verify Identity</h3>
-                        <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 0.5rem;">Safe and secure
-                            guest-auth system tied directly to your Minecraft IGN.</p>
-                    </div>
-                </div>
-            </section>
-
-            <!-- VIEW: DASHBOARD -->
-            <section id="view-dashboard" class="view-section">
-                <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 2rem;">
-                    <div>
-                        <h1 style="font-size: 2rem; font-weight: 800;">Welcome back, <span id="dash-ign"
-                                style="color: var(--primary)">Steve</span></h1>
-                        <p style="color: var(--text-muted);">Here's your status for Season 1</p>
-                    </div>
-                    <div id="dash-badge-large" class="badge badge-iron tier-badge-large">Iron Rank</div>
-                </div>
-
-                <div class="grid-container" style="grid-template-columns: 2fr 1fr;">
-                    <!-- Progression Card -->
-                    <div class="glass-card tier-progress-card">
-                        <div class="info-header">
-                            <span id="dash-progress-title" class="info-title">Road to Gold Rank</span>
-                            <span id="dash-progress-count" class="info-title" style="color: var(--primary);">0 / 20
-                                Matches</span>
-                        </div>
-                        <div class="progress-track">
-                            <div id="dash-progress-bar" class="progress-fill" style="width: 0%;"></div>
-                        </div>
-                        <p id="dash-motivational" class="progress-text" style="text-align: left;">Play 20 matches to
-                            unlock your Diamond features!</p>
-
-                        <div
-                            style="margin-top: 2rem; padding: 2rem; background: rgba(0,0,0,0.2); border-radius: 15px; text-align: center;">
-                            <button id="join-queue-btn" class="btn btn-primary"
-                                style="width: 100%; font-size: 1.1rem; padding: 1rem;">JOIN MATCHMAKING</button>
-                            <div id="queue-status-text" class="hidden"
-                                style="margin-top: 1rem; color: var(--success); font-weight: 700;">
-                                <span class="nav-icon">⏱️</span> IN QUEUE: <span id="queue-timer">00:00</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Quick Stats -->
-                    <div class="glass-card">
-                        <h3 class="info-title" style="margin-bottom: 1.5rem;">Core Metrics</h3>
-                        <div style="display: flex; flex-direction: column; gap: 1.5rem;">
-                            <div>
-                                <div style="color: var(--text-muted); font-size: 0.8rem;">ELO RATING</div>
-                                <div id="dash-elo" style="font-size: 2rem; font-weight: 800;">1,000</div>
-                            </div>
-                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-                                <div>
-                                    <div style="color: var(--text-muted); font-size: 0.8rem;">WINS</div>
-                                    <div id="dash-wins"
-                                        style="font-size: 1.25rem; font-weight: 700; color: var(--success);">0</div>
-                                </div>
-                                <div>
-                                    <div style="color: var(--text-muted); font-size: 0.8rem;">LOSSES</div>
-                                    <div id="dash-losses"
-                                        style="font-size: 1.25rem; font-weight: 700; color: var(--error);">0</div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Server Info -->
-                <div class="glass-card"
-                    style="margin-top: 1.5rem; display: flex; justify-content: space-between; align-items: center;">
-                    <div>
-                        <h4 class="info-title">Global Matchmaking Server</h4>
-                        <code id="dash-server-ip"
-                            style="font-family: var(--font-mono); color: var(--success); font-size: 1.1rem;">mc.ranked-server.com</code>
-                    </div>
-                    <button id="dash-copy-btn" class="btn btn-ghost">Copy IP</button>
-                </div>
-            </section>
-
-            <!-- VIEW: LEADERBOARD -->
-            <section id="view-leaderboard" class="view-section">
-                <div class="glass-card">
-                    <div
-                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
-                        <h2 style="font-size: 1.5rem; font-weight: 800;">Global Leaderboard</h2>
-                        <div class="hero-badge" style="margin-bottom: 0;">SEASON 1</div>
-                    </div>
-
-                    <div id="lb-locked-overlay" class="locked-feature" style="padding: 5rem; text-align: center;">
-                        <span style="font-size: 3rem;">🔒</span>
-                        <h3 style="margin-top: 1rem;">Leaderboard Access Restricted</h3>
-                        <p style="color: var(--text-muted); max-width: 300px; margin: 0.5rem auto;">Play 50 matches to
-                            achieve <span style="color: var(--tier-diamond);">Diamond Tier</span> and view global
-                            rankings.</p>
-                    </div>
-
-                    <table id="lb-table" class="data-table hidden">
-                        <thead>
-                            <tr>
-                                <th>Rank</th>
-                                <th>Player</th>
-                                <th>Tier</th>
-                                <th>ELO</th>
-                                <th>Wins</th>
-                            </tr>
-                        </thead>
-                        <tbody id="lb-tbody">
-                            <!-- Dynamic Rows -->
-                        </tbody>
-                    </table>
-                </div>
-            </section>
-
-            <!-- VIEW: PROFILE -->
-            <section id="view-profile" class="view-section">
-                <div class="glass-card">
-                    <div style="display: flex; align-items: center; gap: 2rem; margin-bottom: 3rem;">
-                        <div
-                            style="width: 100px; height: 100px; background: var(--bg-card-solid); border-radius: 20px; border: 2px solid var(--primary);">
-                        </div>
-                        <div>
-                            <h2 id="prof-ign" style="font-size: 2.5rem; font-weight: 800;">Steve</h2>
-                            <div id="prof-tier" class="badge badge-iron">Iron Tier</div>
-                        </div>
-                    </div>
-
-                    <div class="grid-container">
-                        <div class="info-card">
-                            <div class="info-title">Account Statistics</div>
-                            <div style="margin-top: 1rem; display: flex; flex-direction: column; gap: 0.5rem;">
-                                <div style="display: flex; justify-content: space-between;">
-                                    <span style="color: var(--text-muted);">Matches Played</span>
-                                    <span id="prof-matches">0</span>
-                                </div>
-                                <div style="display: flex; justify-content: space-between;">
-                                    <span style="color: var(--text-muted);">Win Rate</span>
-                                    <span id="prof-winrate">0%</span>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="info-card">
-                            <div class="info-title">Matchmaking Settings</div>
-                            <div style="margin-top: 1rem;">
-                                <button id="prof-logout-btn" class="btn btn-ghost"
-                                    style="width: 100%; color: var(--error); border-color: rgba(239, 68, 68, 0.2);">Sign
-                                    Out Account</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-        </main>
-
-        <!-- LOGIN OVERLAY -->
-        <div id="auth-overlay" class="auth-view">
-            <div class="glass-card auth-card fade-in">
-                <h2 class="title" style="font-size: 2rem;">Sign In</h2>
-                <p class="subtitle" style="margin-bottom: 2rem;">Enter your Minecraft IGN to connect.</p>
-
-                <form id="auth-form" class="form-group">
-                    <div>
-                        <label>MINECRAFT USERNAME</label>
-                        <input type="text" id="ign-input" class="input-field" placeholder="e.g. Dream" required
-                            autocomplete="off">
-                    </div>
-
-                    <button type="submit" class="btn btn-primary" style="margin-top: 1rem;">Start Competitive
-                        Journey</button>
-                    <button type="button" class="btn btn-ghost" onclick="app.hideAuth()">Cancel</button>
-                </form>
-
-                <div id="auth-status" class="status-msg"></div>
+                <button id="nav-action-btn" class="btn btn-primary" onclick="app.showAuth()">LOGIN</button>
             </div>
         </div>
+    </header>
 
+    <!-- VIEWS -->
+    <main>
+
+        <!-- HOME VIEW -->
+        <section id="view-home" class="fade-in">
+            <div class="hero-section">
+                <h1 class="hero-title">MINECRAFT BEDROCK<br><span class="text-primary">RANKED SPEEDRUNNING</span></h1>
+                <p class="hero-sub">Compete in speedrun matches. Win to climb ranks.<br>First to the End wins.</p>
+
+                <div style="display: flex; gap: 1rem;">
+                    <button class="btn btn-primary btn-large" onclick="app.showAuth()">COMPETE NOW</button>
+                    <button class="btn btn-outline btn-large" onclick="app.navigate('leaderboard')">VIEW RANKS</button>
+                </div>
+            </div>
+
+            <div class="container">
+                <div class="feature-grid">
+                    <div class="feature-card">
+                        <div class="feature-icon">⚡</div>
+                        <h3>Ranked Mode</h3>
+                        <p>Match with players at your exact skill level. Same seed. Fair competition.</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">📈</div>
+                        <h3>Progression</h3>
+                        <p>Start as a Rookie. Win matches to reach Veteran status and unlock the leaderboard.</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">🛡️</div>
+                        <h3>Secure</h3>
+                        <p>Verified accounts linked to your Xbox Gamertag. No alts, no cheating.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- DASHBOARD VIEW -->
+        <section id="view-dashboard" class="dashboard-view hidden fade-in">
+            <div class="dash-header">
+                <div style="text-align: left;">
+                    <h2 id="dash-ign">STEVE</h2>
+                    <div class="text-primary pixel-font" style="font-size: 0.8rem;">Ready to Queue</div>
+                </div>
+                <button id="dash-logout" class="btn btn-outline" style="font-size: 0.8rem;">SIGN OUT</button>
+            </div>
+
+            <div class="rank-card">
+                <div class="rank-badge-lg" id="dash-tier">IRON RANK</div>
+
+                <div class="stat-row">
+                    <div>
+                        <div style="font-size: 0.8rem; color:#888;">WINS</div>
+                        <div id="dash-wins" class="text-green">0</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 0.8rem; color:#888;">LOSSES</div>
+                        <div id="dash-losses" class="text-red">0</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 0.8rem; color:#888;">ELO</div>
+                        <div id="dash-elo" class="text-gold">1000</div>
+                    </div>
+                </div>
+
+                <div style="text-align: left; margin-top: 2rem;">
+                    <div style="display: flex; justify-content: space-between; font-size: 0.8rem;">
+                        <span id="dash-prog-title">ROAD TO GOLD</span>
+                        <span id="dash-prog-count">0/20</span>
+                    </div>
+                    <div class="progress-container-gaming">
+                        <div id="dash-prog-bar" class="progress-fill-gaming"></div>
+                    </div>
+                    <p style="font-size: 0.8rem; margin-top: 0.5rem;" id="dash-prog-msg">Play 20 matches to unlock
+                        stats.</p>
+                </div>
+
+                <div style="margin-top: 3rem;">
+                    <button id="queue-btn" class="btn btn-primary btn-large" style="width: 100%;">JOIN QUEUE</button>
+                    <div id="queue-status" class="hidden"
+                        style="margin-top: 1rem; color: var(--primary); font-weight: bold;">
+                        SEARCHING FOR MATCH... <span id="queue-timer">00:00</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="server-box">
+                <span>SERVER:</span>
+                <span style="color: #fff;">mc.ranked-server.com</span>
+                <button id="copy-ip-btn"
+                    style="background: none; border: none; color: #888; cursor: pointer; margin-left: 10px;">[COPY]</button>
+            </div>
+        </section>
+
+        <!-- LEADERBOARD VIEW -->
+        <section id="view-leaderboard" class="container hidden fade-in">
+            <h2 style="text-align: center; margin-bottom: 2rem;">GLOBAL RANKINGS</h2>
+
+            <div id="lb-locked" class="feature-card" style="text-align: center; max-width: 600px; margin: 0 auto;">
+                <div style="font-size: 3rem; margin-bottom: 1rem;">🔒</div>
+                <h3>LOCKED</h3>
+                <p>Reach DIAMOND TIER (50 Matches) to access the global leaderboard.</p>
+            </div>
+
+            <table id="lb-table" class="hidden" style="width: 100%; border-collapse: collapse; text-align: left;">
+                <thead style="border-bottom: 2px solid #333; font-family: var(--font-pixel); color: #888;">
+                    <tr>
+                        <th style="padding: 1rem;">#</th>
+                        <th style="padding: 1rem;">PLAYER</th>
+                        <th style="padding: 1rem;">TIER</th>
+                        <th style="padding: 1rem;">ELO</th>
+                    </tr>
+                </thead>
+                <tbody id="lb-body" style="font-family: var(--font-body);">
+                    <!-- Rows -->
+                </tbody>
+            </table>
+        </section>
+
+    </main>
+
+    <!-- AUTH MODAL -->
+    <div id="auth-modal"
+        style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 2000; align-items: center; justify-content: center;">
+        <div class="feature-card" style="width: 100%; max-width: 400px; animation: fadeIn 0.3s ease-out;">
+            <h2 style="margin-bottom: 2rem; text-align: center;">LOGIN</h2>
+            <form id="auth-form">
+                <div style="margin-bottom: 1.5rem;">
+                    <label style="display: block; font-size: 0.8rem; color: #888; margin-bottom: 0.5rem;">MINECRAFT
+                        IGN</label>
+                    <input type="text" id="ign-input"
+                        style="width: 100%; background: #111; border: 1px solid #333; padding: 10px; color: #fff; font-family: var(--font-body);"
+                        required>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%;">Start Competing</button>
+                <button type="button" class="btn btn-outline" style="width: 100%; margin-top: 10px;"
+                    onclick="app.hideAuth()">Cancel</button>
+            </form>
+            <div id="auth-msg" style="margin-top: 1rem; text-align: center; font-size: 0.8rem;"></div>
+        </div>
     </div>
 
-    <!-- Scripts -->
     <script type="module" src="app.js"></script>
 </body>
 
