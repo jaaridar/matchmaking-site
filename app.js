@@ -10,7 +10,7 @@ const db = init({ appId: APP_ID });
 let state = {
     user: null,
     player: null,
-    currentTier: 'ROOKIE' // ROOKIE, PLAYER, VETERAN
+    currentTier: 'IRON' // IRON, GOLD, DIAMOND, NETHERITE
 };
 
 // --- DOM ELEMENTS ---
@@ -83,15 +83,6 @@ async function handleLogin(e) {
 }
 
 async function initPlayerProfile(id, ign) {
-    // We update the profile to ensure latest IGN is saved
-    // In a real app, we'd check if it exists first to not overwrite stats
-    // For this demo, we assume the backend handles "create if not exists" or we use a merge logic
-
-    // Check if exists first (simulation using subscription would be cleaner, but we do quick write here)
-    // We will blindly update IGN but keep other stats if they existed (in real DB logic)
-    // Here we just write because InstantDB merge depends on permissions/setup.
-
-    // For this frontend-first demo, we'll rely on the subscription to pull actual playing stats
     await db.transact(
         db.tx.players[id].update({
             id,
@@ -103,13 +94,24 @@ async function initPlayerProfile(id, ign) {
 
 // --- PROGRESSION LOGIC ---
 function calculateTier(matches) {
-    if (matches >= 10) return 'VETERAN';
-    if (matches >= 5) return 'PLAYER';
-    return 'ROOKIE';
+    // 0-19: IRON
+    // 20-49: GOLD 
+    // 50-199: DIAMOND
+    // 200+: NETHERITE
+
+    // Assuming the user meant:
+    // First progression 0-20 (Reach 20 to unlock next)
+    // Second 50
+    // Third 200
+
+    if (matches >= 200) return 'NETHERITE';
+    if (matches >= 50) return 'DIAMOND';
+    if (matches >= 20) return 'GOLD';
+    return 'IRON';
 }
 
 function updateGamification(player) {
-    const matches = player.matchesPlayed || 0; // Default to 0
+    const matches = player.matchesPlayed || 0;
     const tier = calculateTier(matches);
     state.currentTier = tier;
 
@@ -120,60 +122,87 @@ function updateGamification(player) {
     updateProgress(matches, tier);
 
     // 3. Unlock Features
-    if (tier === 'ROOKIE') {
+
+    // IRON (0-19): Basic View
+    if (tier === 'IRON') {
         el.statsGrid.classList.add('hidden');
         el.leaderboardContainer.classList.add('locked-feature');
         el.leaderboardLock.style.display = 'flex';
-    } else if (tier === 'PLAYER') {
+        el.leaderboardLock.querySelector('.lock-text').textContent = 'Reach DIAMOND Tier to Unlock';
+        el.leaderboardLock.querySelector('div:last-child').textContent = '(50+ Matches)';
+    }
+    // GOLD (20-49): Stats Unlock
+    else if (tier === 'GOLD') {
         el.statsGrid.classList.remove('hidden');
         el.leaderboardContainer.classList.add('locked-feature');
         el.leaderboardLock.style.display = 'flex';
 
         // Populate stats
-        el.eloDisplay.textContent = player.elo || 1000;
-        const wins = player.wins || 0;
-        const losses = player.losses || 0;
-        el.recordDisplay.textContent = `${wins} Wins - ${losses} Losses`;
-    } else { // VETERAN
+        renderStats(player);
+    }
+    // DIAMOND (50-199): Leaderboard Unlock
+    else if (tier === 'DIAMOND') {
         el.statsGrid.classList.remove('hidden');
         el.leaderboardContainer.classList.remove('locked-feature');
         el.leaderboardLock.style.display = 'none';
 
         // Populate stats & leaderboard
-        el.eloDisplay.textContent = player.elo || 1000;
-        // In real app, we'd fetch leaderboard list here
+        renderStats(player);
+        renderMockLeaderboard();
+    }
+    // NETHERITE (200+): Elite Status
+    else {
+        el.statsGrid.classList.remove('hidden');
+        el.leaderboardContainer.classList.remove('locked-feature');
+        el.leaderboardLock.style.display = 'none';
+
+        renderStats(player);
         renderMockLeaderboard();
     }
 }
 
+function renderStats(player) {
+    el.eloDisplay.textContent = player.elo || 1000;
+    const wins = player.wins || 0;
+    const losses = player.losses || 0;
+    el.recordDisplay.textContent = `${wins} Wins - ${losses} Losses`;
+}
+
 function updateBadge(tier) {
     el.tierBadge.className = 'badge'; // reset
-    if (tier === 'ROOKIE') {
-        el.tierBadge.classList.add('badge-rookie');
-        el.tierBadge.innerHTML = '🔵 Rookie';
-    } else if (tier === 'PLAYER') {
-        el.tierBadge.classList.add('badge-player');
-        el.tierBadge.innerHTML = '🟢 Player';
-    } else {
-        el.tierBadge.classList.add('badge-veteran');
-        el.tierBadge.innerHTML = '🟡 Veteran';
+    if (tier === 'IRON') {
+        el.tierBadge.classList.add('badge-iron');
+        el.tierBadge.innerHTML = '⚪ Iron';
+    } else if (tier === 'GOLD') {
+        el.tierBadge.classList.add('badge-gold');
+        el.tierBadge.innerHTML = '🟡 Gold';
+    } else if (tier === 'DIAMOND') {
+        el.tierBadge.classList.add('badge-diamond');
+        el.tierBadge.innerHTML = '💎 Diamond';
+    } else if (tier === 'NETHERITE') {
+        el.tierBadge.classList.add('badge-netherite');
+        el.tierBadge.innerHTML = '🛡️ Netherite';
     }
 }
 
 function updateProgress(matches, tier) {
-    let target = 5;
+    let target = 20;
     let current = matches;
-    let label = "Road to Player Tier";
-    let msg = "Play 5 matches to unlock your stats.";
+    let label = "Road to Gold";
+    let msg = "Play 20 matches to unlock your stats.";
 
-    if (tier === 'PLAYER') {
-        target = 10;
-        label = "Road to Veteran";
-        msg = "Reach 10 matches to unlock the Global Leaderboard.";
-    } else if (tier === 'VETERAN') {
-        target = 100; // Arbitrary high number for veteran
-        label = "Season Progress";
-        msg = "Climb the ranks and become a legend.";
+    if (tier === 'GOLD') {
+        target = 50;
+        label = "Road to Diamond";
+        msg = "Reach 50 matches to unlock Global Leaderboard.";
+    } else if (tier === 'DIAMOND') {
+        target = 200;
+        label = "Road to Netherite";
+        msg = "Prove your endurance. Become a Legend.";
+    } else if (tier === 'NETHERITE') {
+        target = 1000;
+        label = "Living Legend";
+        msg = "You are among the elite.";
     }
 
     const percentage = Math.min(100, (current / target) * 100);
@@ -200,17 +229,15 @@ function startSubscription(userId) {
         if (!resp.data) return;
         const p = resp.data.players[0];
         if (p) {
-            // Apply gamification updates based on live data
             updateGamification(p);
         } else {
             // New player default state logic
-            updateGamification({ matchesPlayed: 0 }); // Init visual state 0
+            updateGamification({ matchesPlayed: 0 });
         }
     });
 }
 
 function renderMockLeaderboard() {
-    // Only called if unlocked
     const mocks = [
         { name: "SpeedDemon", elo: 2100 },
         { name: "BlockMaster", elo: 1950 },
@@ -233,5 +260,5 @@ el.copyBtn.addEventListener('click', () => {
     setTimeout(() => el.copyBtn.innerText = "Copy", 2000);
 });
 el.logoutBtn.addEventListener('click', () => {
-    location.reload(); // Simple logout for now/Guest mode
+    location.reload();
 });

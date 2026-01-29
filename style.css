@@ -10,9 +10,16 @@
     --primary-hover: #6d28d9;
 
     /* Tiers */
-    --tier-rookie: #3b82f6;
-    --tier-player: #10b981;
-    --tier-veteran: #f59e0b;
+    --tier-iron: #cbd5e1;
+    /* Iron Ingot */
+    --tier-gold: #fbbf24;
+    /* Gold Ingot */
+    --tier-diamond: #22d3ee;
+    /* Diamond Blue */
+    --tier-netherite: #a8a29e;
+    /* Ancient Debris / Dark Gray */
+    --tier-legend: #d946ef;
+    /* Enchantment Purple */
 
     /* Status */
     --success: #22c55e;
@@ -39,7 +46,7 @@ body {
     background-color: var(--bg-deep);
     background-image:
         radial-gradient(circle at 15% 15%, rgba(124, 58, 237, 0.08) 0%, transparent 40%),
-        radial-gradient(circle at 85% 85%, rgba(59, 130, 246, 0.05) 0%, transparent 40%);
+        radial-gradient(circle at 85% 85%, rgba(34, 211, 238, 0.05) 0%, transparent 40%);
     color: var(--text-main);
     font-family: var(--font-heading);
     min-height: 100vh;
@@ -237,24 +244,41 @@ label {
     font-weight: 800;
     text-transform: uppercase;
     letter-spacing: 0.05em;
+    border: 1px solid transparent;
 }
 
-.badge-rookie {
-    background: rgba(59, 130, 246, 0.15);
-    color: var(--tier-rookie);
-    border: 1px solid rgba(59, 130, 246, 0.3);
+/* Tier Specific Badges */
+.badge-iron {
+    background: rgba(203, 213, 225, 0.1);
+    color: var(--tier-iron);
+    border-color: rgba(203, 213, 225, 0.3);
 }
 
-.badge-player {
-    background: rgba(16, 185, 129, 0.15);
-    color: var(--tier-player);
-    border: 1px solid rgba(16, 185, 129, 0.3);
+.badge-gold {
+    background: rgba(251, 191, 36, 0.1);
+    color: var(--tier-gold);
+    border-color: rgba(251, 191, 36, 0.3);
 }
 
-.badge-veteran {
-    background: rgba(245, 158, 11, 0.15);
-    color: var(--tier-veteran);
-    border: 1px solid rgba(245, 158, 11, 0.3);
+.badge-diamond {
+    background: rgba(34, 211, 238, 0.1);
+    color: var(--tier-diamond);
+    border-color: rgba(34, 211, 238, 0.3);
+    box-shadow: 0 0 10px rgba(34, 211, 238, 0.15);
+}
+
+.badge-netherite {
+    background: linear-gradient(135deg, #2a2a2a 0%, #1f1f1f 100%);
+    color: var(--tier-netherite);
+    border-color: rgba(168, 162, 158, 0.5);
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
+}
+
+.badge-legend {
+    background: rgba(217, 70, 239, 0.1);
+    color: var(--tier-legend);
+    border-color: rgba(217, 70, 239, 0.4);
+    box-shadow: 0 0 15px rgba(217, 70, 239, 0.3);
 }
 
 /* Progress Section */
@@ -397,8 +421,4 @@ label {
 /* Utilities */
 .hidden {
     display: none !important;
-}
-
-.mt-4 {
-    margin-top: 1.5rem;
 }
