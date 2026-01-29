@@ -25,14 +25,14 @@
     <!-- TOP NAVIGATION -->
     <header class="top-nav">
         <div class="nav-container">
-            <a href="/" class="nav-brand" onclick="app.navigate('home', event)">
+            <a href="/" class="nav-brand" data-navigate="home">
                 <span>⚔️</span> MCBE RANKED
             </a>
 
             <nav class="nav-links">
-                <a class="nav-link active" data-route="home" onclick="app.navigate('home')">HOME</a>
-                <a class="nav-link" data-route="dashboard" onclick="app.navigate('dashboard')">DASHBOARD</a>
-                <a class="nav-link" data-route="leaderboard" onclick="app.navigate('leaderboard')">LEADERBOARD</a>
+                <a class="nav-link active" data-route="home" data-navigate="home">HOME</a>
+                <a class="nav-link" data-route="dashboard" data-navigate="dashboard">DASHBOARD</a>
+                <a class="nav-link" data-route="leaderboard" data-navigate="leaderboard">LEADERBOARD</a>
             </nav>
 
             <div class="user-nav">
@@ -42,7 +42,7 @@
                         style="font-family: var(--font-pixel); font-size: 0.8rem; color: var(--primary);">STEVE</span>
                 </div>
                 <!-- Auth button changes based on state -->
-                <button id="nav-action-btn" class="btn btn-primary" onclick="app.loginWithDiscord()">LOGIN</button>
+                <button id="nav-action-btn" class="btn btn-primary" data-action="login">LOGIN</button>
             </div>
         </div>
     </header>
@@ -65,8 +65,8 @@
                 <p class="hero-sub">Compete in speedrun matches. Win to climb ranks.<br>First to the End wins.</p>
 
                 <div style="display: flex; gap: 1rem;">
-                    <button class="btn btn-primary btn-large" onclick="app.loginWithDiscord()">COMPETE NOW</button>
-                    <button class="btn btn-outline btn-large" onclick="app.navigate('leaderboard')">VIEW RANKS</button>
+                    <button class="btn btn-primary btn-large" data-action="login">COMPETE NOW</button>
+                    <button class="btn btn-outline btn-large" data-navigate="leaderboard">VIEW RANKS</button>
                 </div>
             </div>
 
@@ -101,7 +101,7 @@
                         <div class="text-primary pixel-font" style="font-size: 0.8rem;">Ready to Queue</div>
                     </div>
                 </div>
-                <button id="dash-logout" class="btn btn-outline" style="font-size: 0.8rem;" onclick="app.logout()">SIGN
+                <button id="dash-logout" class="btn btn-outline" style="font-size: 0.8rem;" data-action="logout">SIGN
                     OUT</button>
             </div>
 
