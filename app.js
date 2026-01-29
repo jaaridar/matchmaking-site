@@ -41,10 +41,11 @@ async function handleGuestSignIn(e) {
     
     try {
         console.log('[Auth] Signing in as guest with IGN:', state.ign);
-        await db.auth.signInAsGuest();
+        await db.auth.signInAsGuest()const { user } = await db.auth.signInAsGuest();
         // Save IGN to local storage to persist
         localStorage.setItem('pending_ign', state.ign);
         showStatus('Account created! Setting up your profile...', 'success');
+            handleOnAuth(user);
     } catch (err) {
         console.error('[Auth Error]', err);
         showStatus('Error: ' + (err.message || 'Please try again.'), 'error');
@@ -144,17 +145,6 @@ function renderDashboard() {
 }
 
 // --- SUBSCRIPTIONS ---
-// Auth state subscription
-db.subscribeAuth((auth) => {
-  const user = auth?.user;
-  if (user && !state.user) {
-    handleOnAuth(user);
-  } else if (!user && state.user) {
-    state.user = null;
-    state.player = null;
-    switchView('auth');
-  }
-});
 // Leaderboard subscription
 db.subscribeQuery({ players: { $: { limit: 5, order: { server: 'createdAt', direction: 'desc' } } } }, (resp) => {
     if (resp.data) {
