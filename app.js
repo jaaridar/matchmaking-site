@@ -3,7 +3,8 @@ const APP_ID = '31f38418-869a-4b4b-8d65-66b3df8ae919';
 const SERVER_IP = 'mc.yourserver.com:19132';
 
 // --- INITIALIZATION ---
-import { init } from 'https://cdn.jsdelivr.net/npm/@instantdb/core@0.17.4/+esm';
+// Using the latest version (0.22.116) as suggested for better Guest Auth support
+import { init } from 'https://cdn.jsdelivr.net/npm/@instantdb/core@0.22.116/+esm';
 
 const db = init({ appId: APP_ID });
 
@@ -40,13 +41,22 @@ async function handleGuestSignIn(e) {
     showStatus('Creating your account... Please wait.', 'success');
 
     try {
-        console.log('[Auth] Signing in as guest with IGN:', state.ign);
-        // InstantDB Vanilla JS SDK: signInAsGuest is available on db.auth
-        const result = await db.auth.signInAsGuest();
-        const user = result.user;
+        console.log('[Auth] Attempting Guest Sign-In with IGN:', state.ign);
+
+        let user;
+
+        // Check if signInAsGuest exists on db.auth
+        if (db.auth && typeof db.auth.signInAsGuest === 'function') {
+            const result = await db.auth.signInAsGuest();
+            user = result.user;
+        } else {
+            console.warn('[Auth] signInAsGuest not found in this SDK version. Falling back to local ID.');
+            // Fallback for older SDK or mismatch: Option 1 - Client Side Guest ID
+            user = { id: `guest-${Date.now()}-${Math.random().toString(36).substr(2, 9)}` };
+        }
 
         if (user) {
-            console.log('[Auth] Signed in as:', user.id);
+            console.log('[Auth] Success. User ID:', user.id);
             // Save IGN and create player profile
             await registerPlayerData(user.id, state.ign);
         } else {
@@ -59,6 +69,8 @@ async function handleGuestSignIn(e) {
 }
 
 function handleOnAuth(user) {
+    if (!user || user.id === state.user?.id) return;
+
     state.user = user;
     console.log('[Auth State] User detected:', user.id);
 
@@ -81,7 +93,7 @@ function handleOnAuth(user) {
 }
 
 async function registerPlayerData(id, ign) {
-    console.log('[DB] Upserting player profile:', ign);
+    console.log('[DB] Upserting player profile for ID:', id, 'IGN:', ign);
     try {
         await db.transact(
             db.tx.players[id].update({
@@ -94,7 +106,7 @@ async function registerPlayerData(id, ign) {
         console.log('[DB] Player profile saved.');
     } catch (err) {
         console.error('[DB Error]', err);
-        showStatus('Failed to save player profile.', 'error');
+        showStatus('Failed to save player profile. (Check Instance Permissions)', 'error');
     }
 }
 
@@ -141,17 +153,24 @@ function renderDashboard() {
 }
 
 // --- SUBSCRIPTIONS ---
+
 // Auth state subscription - keeps the app in sync with session
-db.subscribeQuery({ _core: { user: {} } }, (resp) => {
-    const user = resp.data?._core?.user;
-    if (user && !state.user) {
-        handleOnAuth(user);
-    } else if (!user && state.user) {
-        state.user = null;
-        state.player = null;
-        switchView('auth');
-    }
-});
+// Note: We use a try-catch for the subscription because different versions might have different structures
+try {
+    db.subscribeQuery({ _core: { user: {} } }, (resp) => {
+        const user = resp.data?._core?.user;
+        if (user) {
+            handleOnAuth(user);
+        } else if (state.user) {
+            // Only sign out if we had a user and now don't
+            state.user = null;
+            state.player = null;
+            switchView('auth');
+        }
+    });
+} catch (e) {
+    console.warn('[Subs] Could not subscribe to _core.user. Auth detection might be manual only.', e);
+}
 
 // Leaderboard subscription
 db.subscribeQuery({ players: { $: { limit: 5, order: { server: 'createdAt', direction: 'desc' } } } }, (resp) => {
@@ -182,9 +201,16 @@ el.copyBtn.addEventListener('click', () => {
 });
 
 el.logoutBtn.addEventListener('click', () => {
-    db.auth.signOut();
+    if (db.auth && typeof db.auth.signOut === 'function') {
+        db.auth.signOut();
+    } else {
+        state.user = null;
+        state.player = null;
+        switchView('auth');
+        showStatus('Logged out (Local Session Cleared)', 'success');
+    }
 });
 
 // Initial View
 switchView('auth');
-console.log('[App] Initialized with Guest Auth. App ID:', APP_ID);
+console.log('[App] Initialized. App ID:', APP_ID);
