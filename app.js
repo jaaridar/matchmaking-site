@@ -42,9 +42,12 @@ window.app = {
             logger.log('App', 'Initializing...');
 
             // Dynamically import InstantDB
-            const { init, id } = await import('https://cdn.jsdelivr.net/npm/@instantdb/core@0.22.116/+esm');
+            const { init, id, tx } = await import('https://cdn.jsdelivr.net/npm/@instantdb/core@0.22.116/+esm');
             this.state.db = init({ appId: APP_ID });
-            this.id = id; // Store id function for later use
+            this.id = id;
+            this.tx = tx; // Store tx specifically for transactions
+
+            logger.log('App', `InstantDB Loaded. ID: ${!!id}, TX: ${!!tx}`);
 
             // Check for OAuth success parameters
             const urlParams = new URLSearchParams(window.location.search);
