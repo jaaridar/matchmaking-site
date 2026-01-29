@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Matchmaking - Speedrun HQ</title>
+    <meta name="description" content="Official Minecraft Bedrock speedrunning matchmaking registration.">
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=JetBrains+Mono:wght@400;700&display=swap"
+        rel="stylesheet">
+
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body class="enterprise-theme">
+    <div id="app" class="container">
+        <!-- Auth View -->
+        <section id="auth-section" class="card fade-in">
+            <h1 class="title">MCBE Ranked</h1>
+            <p class="subtitle">Join the elite speedrunning community.</p>
+
+            <div id="status-msg" class="status-msg"></div>
+
+            <!-- Login/Reg Form -->
+            <form id="auth-form" class="form-group">
+                <div class="input-wrapper">
+                    <label for="email">Work Email</label>
+                    <input type="email" id="email" placeholder="steve@minecraft.net" required autocomplete="email">
+                </div>
+                <div id="ign-field" class="input-wrapper">
+                    <label for="ign">Minecraft IGN</label>
+                    <input type="text" id="ign" placeholder="MinecraftUsername" autocomplete="username">
+                </div>
+
+                <div class="actions">
+                    <button type="submit" class="btn btn-primary">Send Magic Code</button>
+                    <button type="button" id="toggle-auth-mode" class="btn-link">Already have a code? Login</button>
+                </div>
+            </form>
+
+            <!-- Verification Form (Hidden) -->
+            <form id="verify-form" class="form-group hidden">
+                <div class="input-wrapper">
+                    <label for="magic-code">6-Digit Code</label>
+                    <input type="text" id="magic-code" placeholder="123456" maxlength="6" pattern="[0-9]{6}"
+                        inputmode="numeric">
+                </div>
+                <div class="actions">
+                    <button type="submit" class="btn btn-primary">Verify & Sign In</button>
+                    <button type="button" id="back-to-auth" class="btn-link">Wrong email? Go back</button>
+                </div>
+            </form>
+        </section>
+
+        <!-- Dashboard View (Hidden) -->
+        <section id="dashboard-section" class="card fade-in hidden">
+            <div class="dashboard-header">
+                <div>
+                    <h2 class="title-small">Welcome, <span id="display-ign">Player</span></h2>
+                    <p class="text-dim">You are successfully authenticated.</p>
+                </div>
+                <div id="queue-status" class="status-badge">Checking...</div>
+            </div>
+
+            <div class="panel">
+                <h3 class="panel-title">Active Match Connection</h3>
+                <div class="command-box">
+                    <code id="server-command">/connect mc.yourserver.com:19132</code>
+                    <button id="copy-btn" class="btn-copy">Copy</button>
+                </div>
+                <p class="info-text">Paste this command in your Minecraft chat to join the server.</p>
+            </div>
+
+            <div class="leaderboard-section">
+                <h3 class="panel-title">Recent Activity</h3>
+                <ul id="leaderboard-list" class="m-list">
+                    <li>Syncing with server...</li>
+                </ul>
+            </div>
+
+            <button id="logout-btn" class="btn btn-secondary">Sign Out</button>
+        </section>
+    </div>
+
+    <!-- App Logic -->
+    <script src="app.js" type="module"></script>
+</body>
+
+</html>
