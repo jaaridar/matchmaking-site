@@ -12,10 +12,14 @@ const REDIRECT_URI = window.location.hostname === 'localhost'
     : `${window.location.protocol}//${window.location.host}/api/discord-auth`;
 
 // --- ERROR HANDLING & LOGGING ---
+// --- ERROR HANDLING & LOGGING ---
 const logger = {
     error: (context, error) => {
         console.error(`[${context}]`, error);
-        // TODO: Send to analytics/error tracking service
+        // CRITICAL: Alert user for immediate feedback during this debug phase
+        if (context === 'Registration' || context === 'OAuth Success') {
+            alert(`Error in ${context}: ${error.message}`);
+        }
     },
     log: (context, message) => {
         console.log(`[${context}]`, message);
@@ -221,12 +225,20 @@ window.app = {
     async completeRegistration(e) {
         e.preventDefault();
         try {
+            if (!this.state.db) throw new Error('Database not initialized');
+
             const input = document.getElementById('reg-ign-input');
             const ign = input?.value?.trim();
-            if (!ign) return;
+            if (!ign) {
+                alert('Please enter your Minecraft name');
+                return;
+            }
 
             const discordUser = this.state.pendingDiscordUser;
+            if (!discordUser) throw new Error('No pending Discord user found');
+
             const newId = this.id();
+            logger.log('Registration', `Creating player ${ign} with ID ${newId}`);
 
             await this.state.db.transact(
                 this.state.db.tx.players[newId].update({
@@ -245,10 +257,15 @@ window.app = {
                 })
             );
 
+            logger.log('Registration', 'Transaction success');
+
+            // Hide modal immediately
+            document.getElementById('register-modal').classList.add('hidden');
+
             this.loginSuccess(newId);
         } catch (error) {
             logger.error('Registration', error);
-            alert('Registration failed. Please try again.');
+            alert(`Registration failed: ${error.message}`);
         }
     },
 
@@ -286,12 +303,28 @@ window.app = {
 
     updateGlobalUserUI(p) {
         try {
-            const btn = document.getElementById('nav-action-btn');
+            // Robust selection: Try data attribute first, then specific IDs
+            const btn = document.querySelector('[data-action="login"]') ||
+                document.getElementById('nav-action-btn') ||
+                document.getElementById('discord-login-btn');
+
             const info = document.getElementById('nav-user-info');
 
             if (btn) {
+                // Change button to "PLAY"
                 btn.textContent = "PLAY";
-                btn.setAttribute('data-navigate', 'dashboard');
+                btn.removeAttribute('data-action'); // Remove login action
+                btn.setAttribute('data-navigate', 'dashboard'); // Set nav action
+
+                // Re-bind click event since we changed attributes
+                // Clone and replace to clear old listeners
+                const newBtn = btn.cloneNode(true);
+                btn.parentNode.replaceChild(newBtn, btn);
+
+                newBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    this.navigate('dashboard');
+                });
             }
 
             if (info) info.classList.remove('hidden');
