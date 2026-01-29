@@ -3,7 +3,6 @@ const APP_ID = '31f38418-869a-4b4b-8d65-66b3df8ae919';
 const SERVER_IP = 'mc.yourserver.com:19132';
 
 // --- INITIALIZATION ---
-// Using the latest version (0.22.116) as suggested for better Guest Auth support
 import { init } from 'https://cdn.jsdelivr.net/npm/@instantdb/core@0.22.116/+esm';
 
 const db = init({ appId: APP_ID });
@@ -45,36 +44,47 @@ async function handleGuestSignIn(e) {
 
         let user;
 
-        // Check if signInAsGuest exists on db.auth
         if (db.auth && typeof db.auth.signInAsGuest === 'function') {
             const result = await db.auth.signInAsGuest();
             user = result.user;
         } else {
-            console.warn('[Auth] signInAsGuest not found in this SDK version. Falling back to local ID.');
-            // Fallback for older SDK or mismatch: Option 1 - Client Side Guest ID
+            console.warn('[Auth] signInAsGuest not found. Using fallback.');
             user = { id: `guest-${Date.now()}-${Math.random().toString(36).substr(2, 9)}` };
         }
 
         if (user) {
             console.log('[Auth] Success. User ID:', user.id);
-            // Save IGN and create player profile
+            // 1. Immediately switch to dashboard view to show progress
+            switchView('dashboard');
+            el.displayIgn.textContent = state.ign;
+            el.queueStatus.textContent = 'Setting up...';
+
+            // 2. Register/Update profile
             await registerPlayerData(user.id, state.ign);
+
+            // 3. Trigger data subscription
+            handleOnAuth(user);
         } else {
             throw new Error('Sign in failed: No user returned');
         }
     } catch (err) {
         console.error('[Auth Error]', err);
         showStatus('Error: ' + (err.message || 'Please try again.'), 'error');
+        switchView('auth');
     }
 }
 
 function handleOnAuth(user) {
-    if (!user || user.id === state.user?.id) return;
+    if (!user) return;
 
+    // Update local state
     state.user = user;
-    console.log('[Auth State] User detected:', user.id);
+    console.log('[Auth State] Handling user:', user.id);
 
-    // Subscribe to player data to see if we have a profile
+    // Switch to dashboard immediately if we have a user
+    switchView('dashboard');
+
+    // Subscribe to player data to stay in sync
     db.subscribeQuery({ players: { $: { where: { id: user.id } } } }, (resp) => {
         if (resp.error) {
             console.error('[DB Error]', resp.error);
@@ -85,15 +95,19 @@ function handleOnAuth(user) {
         if (players.length > 0) {
             state.player = players[0];
             renderDashboard();
-            switchView('dashboard');
         } else {
-            console.log('[DB] No player profile found for user yet.');
+            console.log('[DB] Waiting for player profile to propagate...');
+            // If we have local IGN, show it while we wait
+            if (state.ign) {
+                el.displayIgn.textContent = state.ign;
+                el.queueStatus.textContent = 'Synchronizing...';
+            }
         }
     });
 }
 
 async function registerPlayerData(id, ign) {
-    console.log('[DB] Upserting player profile for ID:', id, 'IGN:', ign);
+    console.log('[DB] Upserting profile:', ign);
     try {
         await db.transact(
             db.tx.players[id].update({
@@ -103,10 +117,10 @@ async function registerPlayerData(id, ign) {
                 createdAt: Date.now()
             })
         );
-        console.log('[DB] Player profile saved.');
+        console.log('[DB] Profile transaction sent.');
     } catch (err) {
         console.error('[DB Error]', err);
-        showStatus('Failed to save player profile. (Check Instance Permissions)', 'error');
+        showStatus('Failed to sync profile. Check DB permissions!', 'error');
     }
 }
 
@@ -128,11 +142,10 @@ function showStatus(msg, type) {
     el.statusMsg.className = `status-msg ${type}`;
     el.statusMsg.style.display = 'block';
 
-    // Auto-hide success messages after 10s
     if (type === 'success') {
         setTimeout(() => {
             if (el.statusMsg.textContent === msg) el.statusMsg.style.display = 'none';
-        }, 10000);
+        }, 5000);
     }
 }
 
@@ -154,22 +167,20 @@ function renderDashboard() {
 
 // --- SUBSCRIPTIONS ---
 
-// Auth state subscription - keeps the app in sync with session
-// Note: We use a try-catch for the subscription because different versions might have different structures
+// Auth state subscription for persistence
 try {
     db.subscribeQuery({ _core: { user: {} } }, (resp) => {
         const user = resp.data?._core?.user;
         if (user) {
             handleOnAuth(user);
         } else if (state.user) {
-            // Only sign out if we had a user and now don't
             state.user = null;
             state.player = null;
             switchView('auth');
         }
     });
 } catch (e) {
-    console.warn('[Subs] Could not subscribe to _core.user. Auth detection might be manual only.', e);
+    console.warn('[Subs] Auth persistence subscription inactive.');
 }
 
 // Leaderboard subscription
@@ -207,10 +218,9 @@ el.logoutBtn.addEventListener('click', () => {
         state.user = null;
         state.player = null;
         switchView('auth');
-        showStatus('Logged out (Local Session Cleared)', 'success');
     }
 });
 
 // Initial View
 switchView('auth');
-console.log('[App] Initialized. App ID:', APP_ID);
+console.log('[App] Matchmaking ready.');
