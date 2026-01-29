@@ -1,10 +1,8 @@
-import { sign } from 'jsonwebtoken';
 import { serialize } from 'cookie';
 import { v4 as uuidv4 } from 'uuid';
 
 const APP_ID = '31f38418-869a-4b4b-8d65-66b3df8ae919';
 const INSTANT_ADMIN_TOKEN = process.env.INSTANTDB_ADMIN_TOKEN;
-const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret-for-dev';
 
 export default async function handler(req, res) {
     // CORS
@@ -22,7 +20,7 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: 'Missing code' });
     }
 
-    const CLIENT_ID = process.env.DISCORD_CLIENT_ID;
+    const CLIENT_ID = process.env.DISCORD_CLIENT_ID || '1466307300024123627';
     const CLIENT_SECRET = process.env.DISCORD_CLIENT_SECRET;
 
     const protocol = req.headers['x-forwarded-proto'] || 'http';
@@ -67,7 +65,6 @@ export default async function handler(req, res) {
             : '';
 
         // --- INSTANTDB UPSERT ---
-        // 1. Check if user exists
         const query = {
             users: {
                 $: {
@@ -91,7 +88,6 @@ export default async function handler(req, res) {
 
         if (user) {
             userId = user.id;
-            // Update lastLoginAt
             await fetch(`https://api.instantdb.com/admin/apps/${APP_ID}/transact`, {
                 method: 'POST',
                 headers: {
@@ -110,7 +106,6 @@ export default async function handler(req, res) {
             });
         } else {
             userId = uuidv4();
-            // Create new user
             await fetch(`https://api.instantdb.com/admin/apps/${APP_ID}/transact`, {
                 method: 'POST',
                 headers: {
@@ -134,18 +129,15 @@ export default async function handler(req, res) {
             });
         }
 
-        // --- SESSION COOKIE ---
-        const token = sign({ userId: userId }, JWT_SECRET, { expiresIn: '7d' });
-
-        res.setHeader('Set-Cookie', serialize('session', token, {
+        // --- SESSION COOKIE (PLAIN) ---
+        res.setHeader('Set-Cookie', serialize('session', userId, {
             httpOnly: true,
-            secure: true, // Always secure for cross-site auth redirects
+            secure: true,
             sameSite: 'lax',
             path: '/',
             maxAge: 60 * 60 * 24 * 7 // 1 week
         }));
 
-        // Redirect to Home
         return res.redirect(302, `${protocol}://${host}/`);
 
     } catch (error) {

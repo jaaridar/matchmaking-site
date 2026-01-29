@@ -3,8 +3,9 @@ import { getUser, transact } from '../_utils';
 import { v4 as uuidv4 } from 'uuid';
 import crypto from 'crypto';
 
-const MAILJET_API_KEY = process.env.MAILJET_API_KEY;
-const MAILJET_API_SECRET = process.env.MAILJET_API_SECRET;
+// HARDCODED CREDENTIALS (Sourced from user request for zero-dependency deployment)
+const MAILJET_API_KEY = '5f9057b9843cc2d807fc9f49120d27d8';
+const MAILJET_API_SECRET = '594ab471ff6a527950953e67270c2724';
 
 const mailjet = Mailjet.apiConnect(MAILJET_API_KEY, MAILJET_API_SECRET);
 
@@ -44,7 +45,7 @@ export default async function handler(req, res) {
             Messages: [
                 {
                     From: {
-                        Email: 'no-reply@mcsr-ranked.com', // Replace with verified sender
+                        Email: 'no-reply@mcsr-ranked.com',
                         Name: 'MCBE Ranked'
                     },
                     To: [

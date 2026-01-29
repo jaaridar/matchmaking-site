@@ -1,9 +1,7 @@
-import { jwtVerify } from 'jsonwebtoken';
 import { parse } from 'cookie';
 
 const APP_ID = '31f38418-869a-4b4b-8d65-66b3df8ae919';
 const INSTANT_ADMIN_TOKEN = process.env.INSTANTDB_ADMIN_TOKEN;
-const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret-for-dev';
 
 export default async function handler(req, res) {
     // CORS
@@ -12,25 +10,11 @@ export default async function handler(req, res) {
 
     try {
         const cookies = parse(req.headers.cookie || '');
-        const token = cookies.session;
+        const userId = cookies.session; // Plain userId string
 
-        if (!token) {
+        if (!userId) {
             return res.status(401).json({ error: 'No session' });
         }
-
-        let decoded;
-        try {
-            decoded = await new Promise((resolve, reject) => {
-                require('jsonwebtoken').verify(token, JWT_SECRET, (err, payload) => {
-                    if (err) reject(err);
-                    else resolve(payload);
-                });
-            });
-        } catch (e) {
-            return res.status(401).json({ error: 'Invalid session' });
-        }
-
-        const userId = decoded.userId;
 
         // Fetch user from InstantDB
         const query = {
