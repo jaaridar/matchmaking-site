@@ -14,18 +14,23 @@ export default async function handler(req, res) {
         return;
     }
 
-    const { code } = req.query;
-
-    if (!code) {
-        return res.status(400).json({ error: 'Missing code' });
-    }
-
     const CLIENT_ID = process.env.DISCORD_CLIENT_ID || '1466307300024123627';
     const CLIENT_SECRET = process.env.DISCORD_CLIENT_SECRET;
 
     const protocol = req.headers['x-forwarded-proto'] || 'http';
     const host = req.headers['host'];
     const REDIRECT_URI = `${protocol}://${host}/api/discord-auth`;
+
+    const { code } = req.query;
+
+    if (!code) {
+        // --- INITIATION PHASE ---
+        const scope = encodeURIComponent('identify email');
+        const encodedRedirect = encodeURIComponent(REDIRECT_URI);
+        const discordAuthUrl = `https://discord.com/api/oauth2/authorize?client_id=${CLIENT_ID}&redirect_uri=${encodedRedirect}&response_type=code&scope=${scope}`;
+
+        return res.redirect(302, discordAuthUrl);
+    }
 
     try {
         // Exchange Code
