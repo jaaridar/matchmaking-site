@@ -145,17 +145,16 @@ function renderDashboard() {
 
 // --- SUBSCRIPTIONS ---
 // Auth state subscription
-db.subscribeQuery({ _core: { user: {} } }, (resp) => {
-    const user = resp.data?._core?.user;
-    if (user && !state.user) {
-        handleOnAuth(user);
-    } else if (!user && state.user) {
-        state.user = null;
-        state.player = null;
-        switchView('auth');
-    }
+db.subscribeAuth((auth) => {
+  const user = auth?.user;
+  if (user && !state.user) {
+    handleOnAuth(user);
+  } else if (!user && state.user) {
+    state.user = null;
+    state.player = null;
+    switchView('auth');
+  }
 });
-
 // Leaderboard subscription
 db.subscribeQuery({ players: { $: { limit: 5, order: { server: 'createdAt', direction: 'desc' } } } }, (resp) => {
     if (resp.data) {
