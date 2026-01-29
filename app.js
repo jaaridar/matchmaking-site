@@ -3,7 +3,7 @@ const APP_ID = '31f38418-869a-4b4b-8d65-66b3df8ae919';
 const SERVER_IP = 'mc.yourserver.com:19132';
 
 // --- INITIALIZATION ---
-import { init } from 'https://cdn.jsdelivr.net/npm/@instantdb/core@0.17.4/+esm';
+import { init } from 'https://cdn.jsdelivr.net/npm//+esm';
 
 const db = init({ appId: APP_ID });
 
